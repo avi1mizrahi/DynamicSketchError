@@ -30,7 +30,7 @@ extern void CM_Update(CM_type *, unsigned int, int);
 extern int CM_PointEst(CM_type *, unsigned int);
 extern int CM_PointMed(CM_type *, unsigned int);
 extern int CM_InnerProd(CM_type *, CM_type *);
-extern int CM_Residue(CM_type *, unsigned int *);
+extern int CM_Residue(CM_type *, unsigned int *, unsigned);
 
 extern CMF_type * CMF_Init(int, int, int);
 extern CMF_type * CMF_Copy(CMF_type *);

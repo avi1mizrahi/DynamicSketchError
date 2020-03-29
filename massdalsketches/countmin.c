@@ -205,11 +205,11 @@ int CM_InnerProd(CM_type * cm1, CM_type * cm2)
   return result;
 }
 
-int CM_Residue(CM_type * cm, unsigned int * Q)
+int CM_Residue(CM_type * cm, unsigned int * Q, unsigned size)
 {
-// CM_Residue computes the sum of everything left after the points 
+// CM_Residue computes the sum of everything left after the points
 // from Q have been removed
-// Q is a list of points, where Q[0] gives the length of the list
+// Q is a list of points, size gives the length of the list
 
   char * bitmap;
   int i,j;
@@ -222,7 +222,7 @@ int CM_Residue(CM_type * cm, unsigned int * Q)
       nextest=0;
       for (i=0;i<cm->width;i++)
 	bitmap[i]=0;
-      for (i=1;i<Q[0];i++)
+      for (i=0;i<size;i++)
 	bitmap[hash31(cm->hasha[j],cm->hashb[j],Q[i]) % cm->width]=1;
       for (i=0;i<cm->width;i++)
 	if (bitmap[i]==0) nextest+=cm->counts[j][i];
