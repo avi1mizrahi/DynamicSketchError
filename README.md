@@ -1,1 +1,1 @@
-# DynamicSketchError
+# SketchRing
