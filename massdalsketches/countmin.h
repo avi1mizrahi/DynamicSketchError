@@ -64,3 +64,5 @@ extern int CMH_Rangesum(CMH_type *, int, int);
 extern int CMH_FindRange(CMH_type * cmh, int);
 extern int CMH_Quantile(CMH_type *cmh,float);
 extern long long CMH_F2Est(CMH_type *);
+
+extern int CMH_count(CMH_type * cmh, int depth, int item);
