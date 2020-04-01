@@ -14,6 +14,15 @@ include_directories(${Boost_INCLUDE_DIR})
 add_executable(dynamic_sketch
                playground.cxx
                CountMinSketch.h
-               Sketch.h
-               )
+               SketchRing.h SketchRing.cxx
+               SketchRingC.h)
+
 target_link_libraries(dynamic_sketch massdal)
+
+
+add_executable(testing
+               hotitems.cxx
+               CountMinSketch.h
+               SketchRing.h SketchRing.cxx
+               SketchRingC.h)
+target_link_libraries(testing massdal)

@@ -11,8 +11,8 @@ extern "C" {
 
 #include <new>
 #include <vector>
+#include <unordered_set>
 #include <boost/current_function.hpp>
-#include "Sketch.h"
 
 
 #if 0
@@ -21,19 +21,21 @@ extern "C" {
 #define PRINT_DBG() do {} while(0)
 #endif
 
-class CountMinSketch : public Sketch {
+
+class CountMinSketch {
   public:
-    CountMinSketch(int width, int depth, int seed) : cm(CM_Init(width, depth, seed)) {
+    CountMinSketch(int width, int depth, int seed) : cm(CM_Init(width, depth, 1)) {
         PRINT_DBG();
         if (!cm) throw std::bad_alloc();
     }
 
-    CountMinSketch(const CountMinSketch& other) : cm(CM_Copy(other.cm)) {
+    CountMinSketch(const CountMinSketch& other)
+            : cm(CM_Copy(other.cm)), allItems(other.allItems) {
         PRINT_DBG();
         if (!cm) throw std::bad_alloc();
     }
 
-    CountMinSketch(CountMinSketch&& other) noexcept : cm(other.cm) {
+    CountMinSketch(CountMinSketch&& other) noexcept : cm(other.cm), allItems(other.allItems) {
         PRINT_DBG();
         other.cm = nullptr;
     }
@@ -47,46 +49,66 @@ class CountMinSketch : public Sketch {
     CountMinSketch& operator=(CountMinSketch&& other) noexcept {
         PRINT_DBG();
         std::swap(cm, other.cm);
+        std::swap(allItems, other.allItems);
         return *this;
     }
 
-    ~CountMinSketch() override {
+    ~CountMinSketch() {
         PRINT_DBG();
         CM_Destroy(cm);
     }
 
-    int size() override {
+    [[nodiscard]] unsigned size() const {
         PRINT_DBG();
         return CM_Size(cm);
     }
 
-    void update(unsigned int item, int diff) override {
+    void update(unsigned int item, int diff) {
         PRINT_DBG();
+        allItems.insert(item);
         return CM_Update(cm, item, diff);
     }
 
-    int estimate(unsigned int query) override {
+    [[nodiscard]] unsigned load() const { return allItems.size(); }
+
+    [[nodiscard]] int estimate(unsigned int item) const {
         PRINT_DBG();
-        return CM_PointEst(cm, query);
+        return CM_PointEst(cm, item);
     }
 
-    int pointMed(unsigned int query) {
-        PRINT_DBG();
-        return CM_PointMed(cm, query);
+    [[nodiscard]] std::vector<std::pair<int, int> > heavyHitters(double threshold) const {
+        std::vector<std::pair<int, int> > data;
+        data.reserve(allItems.size());
+
+        for (auto item : allItems) {
+            data.emplace_back(item, estimate(item));
+        }
+
+        auto nth_index = unsigned(data.size() * threshold);
+        std::nth_element(data.begin(),
+                         data.begin() + nth_index,
+                         data.end(),
+                         [](const auto& p1, const auto& p2) { return p1.second < p2.second; });
+
+        return decltype(data)(data.begin() + nth_index, data.end());
     }
 
-    int residue(const std::vector<unsigned>& q) {
-        PRINT_DBG();
-        return CM_Residue(cm, const_cast<unsigned*>(q.data()), q.size());
-    }
+    [[nodiscard]] std::vector<std::pair<int, int> > heavyHitters(int threshold) const {
+        std::vector<std::pair<int, int> > data;
 
-    static int innerProd(const CountMinSketch& cm1, const CountMinSketch& cm2) {
-        PRINT_DBG();
-        return CM_InnerProd(cm1.cm, cm2.cm);
+        for (auto item : allItems) {
+            auto est = estimate(item);
+            if (est >= threshold)
+                data.emplace_back(item, est);
+        }
+
+        return data;
     }
 
   private:
     CM_type* cm;
+
+    std::unordered_set<int> allItems;
 };
 
 
