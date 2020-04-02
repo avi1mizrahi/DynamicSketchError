@@ -26,6 +26,7 @@ extern "C" {
 #include <cstdlib>
 #include <cmath>
 #include <string>
+
 using std::to_string;
 using std::string;
 
@@ -52,7 +53,7 @@ void CheckArguments(int argc, char** argv) {
 
     if (argc > 1)
         range = atoi(argv[1]);
-    else range = 623456;
+    else range = 123456;
 
     if (argc > 2)
         zipfpar = atof(argv[2]);
@@ -67,12 +68,12 @@ void CheckArguments(int argc, char** argv) {
 
     if (argc > 4)
         width = atoi(argv[4]);
-    else width = 512;
+    else width = 160;
 
     if (argc > 5)
         depth = atoi(argv[5]);
     else
-        depth = 5;
+        depth = 3;
 
     if (argc > 6)
         gran = atoi(argv[6]);
@@ -229,25 +230,60 @@ int main(int argc, char** argv) {
 
     printf("\nMethod\tRecall\tPrecis\tSpace\tUpd/ms\n");
 
-    sk = SK_init(width, depth, 16, n + 1);
-    StartTheClock();
-    for (i = 1; i <= range; i++)
-        if (stream[i] > 0)
-            SK_update(sk, stream[i], 1);
-        else
-            SK_update(sk, -stream[i], -1);
-    uptime = StopTheClock();
-    StartTheClock();
-    uilist  = (unsigned int*) SK_heavyHitters(sk, thresh);
-    outtime = StopTheClock();
-    CheckOutput((string("SK") + to_string(16)).c_str(),
-                uilist,
-                thresh,
-                hh,
-                uptime,
-                SK_size(sk));
-    free(uilist);
-    SK_destroy(sk);
+//    sk = SK_init(width, depth, 12, n + 1);
+//    StartTheClock();
+//    for (i = 1; i <= range; i++)
+//        if (stream[i] > 0)
+//            SK_update(sk, stream[i], 1);
+//        else
+//            SK_update(sk, -stream[i], -1);
+//    uptime = StopTheClock();
+//    StartTheClock();
+//    uilist  = (unsigned int*) SK_heavyHitters(sk, thresh);
+//    outtime = StopTheClock();
+//    CheckOutput((string("SK") + to_string(16)).c_str(),
+//                uilist,
+//                thresh,
+//                hh,
+//                uptime,
+//                SK_size(sk));
+//    free(uilist);
+//    SK_destroy(sk);
+
+    printf("size\terror\tafter_resize\n");
+    for (int size = 16; size <= 32; size += 2) {
+        sk = SK_init(8 * width / size, depth, size, n + 1);
+//    sk = SK_init(width, depth, 12, n + 1);
+        StartTheClock();
+        for (i = 1; i <= range; i++)
+            if (stream[i] > 0)
+                SK_update(sk, stream[i], 1);
+            else
+                SK_update(sk, -stream[i], -1);
+        uptime = StopTheClock();
+
+        long int sumsqerr = 0;
+        for (i = 1; i <= n; i++) {
+            if (!exact[i]) continue;
+
+            long est = SK_estimate(sk, i);
+            long err = est - exact[i];
+//            err *= err;
+            sumsqerr += err / std::abs(exact[i]);
+        }
+        SK_resize(sk, size*.95);
+        long int sumsqerrResize = 0;
+        for (i = 1; i <= n; i++) {
+            if (!exact[i]) continue;
+
+            long est = SK_estimate(sk, i);
+            long err = est - exact[i];
+//            err *= err;
+            sumsqerrResize += err / std::abs(exact[i]);
+        }
+        printf("%d\t%f\t%f\n", size, double(sumsqerr) / n, double(sumsqerrResize) / n);
+        SK_destroy(sk);
+    }
 
 //    for (int size = 2; size <= 32; size += 2) {
 //        sk = SK_init(width, depth, size, n+1);
@@ -329,8 +365,6 @@ int main(int argc, char** argv) {
 //        free(uilist);
 //        SK_destroy(sk);
 //    }
-
-
 
 
 //////////////////////////////////
